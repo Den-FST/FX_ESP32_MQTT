@@ -2,7 +2,7 @@
 
 Connect to Metatrader 4 Expert by MQTT, receive data through the python bridge and MQTT, and display on the screen TFT every x seconds. 
 
-https://img.shields.io/github/last-commit/fstadmin/FX_ESP32_MQTT?style=plastic
+https://img.shields.io/github/last-commit/Den-FST/FX_ESP32_MQTT?style=plastic
 
 ## In my case is 2 config, TFT
 
