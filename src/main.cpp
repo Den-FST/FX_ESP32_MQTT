@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <ArduinoOTA.h>
 // #include <esp_task_wdt.h>
-//3 seconds WDT
+// 3 seconds WDT
 #define WDT_TIMEOUT 10
 
 #include <WiFi.h>
@@ -12,6 +12,7 @@
 #include <TFT_Touch.h>
 
 #include <secret.h>
+
 // These are the pins used to interface between the 2046 touch controller and Arduino Pro
 #define DOUT 39 /* Data out pin (T_DO) of touch screen */
 #define DIN 32  /* Data in pin (T_DIN) of touch screen */
@@ -107,6 +108,7 @@ void ledctrl(int r, int g, int b)
 
 void deserializeJson(String jsonData)
 {
+
   DynamicJsonDocument doc(4096);
   // StaticJsonDocument<800> doc; // Adjust the size if necessary
   DeserializationError error = deserializeJson(doc, jsonData);
@@ -117,87 +119,122 @@ void deserializeJson(String jsonData)
     Serial.println(error.c_str());
     return;
   }
-  
-  symbol = doc["s"];
-  type = doc["t"];
-  lots = doc["l"];
-  profit = doc["pr"];
-  currprof = doc["cpr"];
-  todaytrades = doc["ttr"];
-  timeopen = doc["td"];
-  hr_mins = doc["hm"];
-  dayofweek = doc["dw"];
-  trend = doc["tr"];
-  
+    symbol = doc["s"];
+    type = doc["t"];
+    lots = doc["l"];
+    profit = doc["pr"];
+    currprof = doc["cpr"];
+    todaytrades = doc["ttr"];
+    timeopen = doc["td"];
+    hr_mins = doc["hm"];
+    dayofweek = doc["dw"];
+    trend = doc["tr"];
 
-
-  y += 18;
-  tft.fillRect(0, y - 15, TFT_HEIGHT, 50, TFT_BLACK);
-  printTFT(TFT_WIDTH / 16, y, symbol, FF18, TFT_WHITE, 1, 0);
-  delay(5);
-
-  if (type == "Sell")
+  if (symbol != "null")
   {
-    printTFT(TFT_WIDTH / 2.45, y, "SL", FF18, TFT_BLUE, 1, 0);
-  }
-  else
-  {
-    printTFT(TFT_WIDTH / 2.45, y, "BY", FF18, TFT_MAGENTA, 1, 0);
-  }
-  delay(5);
+    Serial.println("No trades");
+    tft.fillScreen(TFT_BLACK);
+    printTFT(55, 120, "No Trades", FF18, TFT_WHITE, 2, 1);
+    printTFT(55, 200, "Server Time: ", FF18, TFT_WHITE, 1, 1);
+    printTFT(195, 200, hr_mins, FF18, TFT_GREEN, 1, 1);    
+  } else {
+   
+    // type = doc["t"];
+    // lots = doc["l"];
+    // profit = doc["pr"];
+    // currprof = doc["cpr"];
+    // todaytrades = doc["ttr"];
+    // timeopen = doc["td"];
+    // hr_mins = doc["hm"];
+    // dayofweek = doc["dw"];
+    // trend = doc["tr"];
 
-  printTFT(TFT_WIDTH / 1.8, y, lots, FF18, TFT_WHITE, 1, 0);
-
-  float col = atoi(profit);
-  if (col < 0.01)
-  {
-    printTFT(TFT_WIDTH / 1.3, y, profit, FF18, TFT_RED, 1, 0); // Negative values
-  }
-  else if (col >= 0.01)
-  {
-    printTFT(TFT_WIDTH / 1.234, y, profit, FF18, TFT_GREEN, 1, 0); // Positive values
+    y += 18;
+    tft.fillRect(0, y - 15, TFT_HEIGHT, 50, TFT_BLACK);
+    printTFT(TFT_WIDTH / 16, y, symbol, FF18, TFT_WHITE, 1, 0);
     delay(5);
 
-    if (buzzMode == true)
-    { // Buzz melody then pozitive value
+    if (type == "Sell")
+    {
+      printTFT(TFT_WIDTH / 2.45, y, "SL", FF18, TFT_BLUE, 1, 0);
+      delay(5);
+    }
+    else
+    {
+      printTFT(TFT_WIDTH / 2.45, y, "BY", FF18, TFT_MAGENTA, 1, 0);
+      delay(5);
+    }
 
-      if (col >= 1.0 && (col - lastSub) > 2.0)
-      {
-        buzz((col * 50), 200);
-        lastSub = col;
+    printTFT(TFT_WIDTH / 1.8, y, lots, FF18, TFT_WHITE, 1, 0);
+    delay(5);
+
+    float col = atoi(profit);
+    if (col < 0.01)
+    {
+      printTFT(TFT_WIDTH / 1.3, y, profit, FF18, TFT_RED, 1, 0); // Negative values
+      delay(5);
+    }
+    else if (col >= 0.01)
+    {
+      printTFT(TFT_WIDTH / 1.234, y, profit, FF18, TFT_GREEN, 1, 0); // Positive values
+      delay(5);
+
+      if (buzzMode == true)
+      { // Buzz melody then pozitive value
+
+        if (col >= 1.0 && (col - lastSub) > 2.0)
+        {
+          buzz((col * 50), 200);
+          lastSub = col;
+        }
       }
     }
-  }
-  printTFT(TFT_WIDTH + 20, y, timeopen, FF18, TFT_LIGHTGREY, 1, 0);
+    printTFT(TFT_WIDTH + 20, y, timeopen, FF18, TFT_LIGHTGREY, 1, 0);
+    delay(5);
 
-  if (atoi(dayofweek) == 1)
-  {
-    tft.drawTriangle(2, y - 2, 8, y - 2, 5, y - 7, TFT_GREEN);
-  }
-  else
-  {
-    tft.drawTriangle(2, y - 7, 8, y - 7, 5, y - 2, TFT_RED);
-  }
-  delay(5);
-  tft.drawLine(0, y + 5, TFT_HEIGHT, y + 5, TFT_YELLOW); // DRAW YELLOW LINE AND SHOW ON TFT PAIR TEXT
-  tft.fillRect(0, y + 25, TFT_HEIGHT, TFT_WIDTH - (TFT_WIDTH - y), TFT_BLACK);
-  printTFT(20, y + 20, hr_mins, FF18, TFT_GREEN, 1, 1);
-  printTFT(TFT_WIDTH / 1.8, y + 20, todaytrades, FF18, TFT_CYAN, 1, 1);
+    if (atoi(dayofweek) == 1)
+    {
+      tft.drawTriangle(2, y - 2, 8, y - 2, 5, y - 7, TFT_GREEN);
+    }
+    else
+    {
+      tft.drawTriangle(2, y - 7, 8, y - 7, 5, y - 2, TFT_RED);
+    }
 
-  tft.setCursor(TFT_WIDTH / 1.3, y + 20);
-  int col1 = atoi(currprof);
-  if (col1 < 0)
-    tft.setTextColor(TFT_GOLD);
-  else
-  {
-    tft.setTextColor(TFT_GREEN);
-  }
-  delay(5);
-  tft.setCursor(TFT_WIDTH / 1.3, y + 20);
-  tft.print(currprof);
+    delay(5);
+    tft.drawLine(0, y + 5, TFT_HEIGHT, y + 5, TFT_YELLOW); // DRAW YELLOW LINE AND SHOW ON TFT PAIR TEXT
+    delay(5);
+    tft.fillRect(0, y + 25, TFT_HEIGHT, TFT_WIDTH - (TFT_WIDTH - y), TFT_BLACK);
+    delay(5);
+    printTFT(20, y + 20, hr_mins, FF18, TFT_GREEN, 1, 1);
+    delay(5);
+    printTFT(TFT_WIDTH / 1.8, y + 20, todaytrades, FF18, TFT_CYAN, 1, 1);
+    delay(5);
+
+    tft.setCursor(TFT_WIDTH / 1.3, y + 20);
+    int col1 = atoi(currprof);
+    if (col1 < 0)
+      tft.setTextColor(TFT_GOLD);
+    else
+    {
+      tft.setTextColor(TFT_GREEN);
+    }
+    delay(5);
+    tft.setCursor(TFT_WIDTH / 1.3, y + 20);
+    tft.print(currprof);
+    delay(5);
+
+  } // END IF NULL
+
+    // todaytrades = doc["ttr"];
+    // hr_mins = doc["hm"];
+    // dayofweek = doc["dw"];
+  
+
 
   int srv_h = String(hr_mins).substring(0, 2).toInt();
   int srv_hm = String(hr_mins).substring(3, 5).toInt();
+
   // Serial.print("H:");
   // Serial.print(srv_h);
   // Serial.print(" - M:");
@@ -219,10 +256,11 @@ void deserializeJson(String jsonData)
     buzzMode = false;
   }
 
-  // Serial.print("Symbol: ");
-  // Serial.print(symbol);
-  doc.clear(); //Clear memory
+  doc.clear(); // Clear memory
+
   // Serial.println(); // Add an empty line for readability
+
+  
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
@@ -243,6 +281,9 @@ void callback(char *topic, byte *payload, unsigned int length)
   int dataStart = 0;
   int dataEnd = -1;
   String dataRecv = receivedData;
+
+  // Serial.println(dataRecv);
+
   while (dataStart < dataRecv.length())
   {
     dataStart = dataRecv.indexOf("{", dataStart);
@@ -253,13 +294,22 @@ void callback(char *topic, byte *payload, unsigned int length)
       break;
     }
 
+    // Serial.print("Data start: ");
+    // Serial.print(dataStart);
+    // Serial.print(" Data end: ");
+    // Serial.println(dataEnd);
+
     String singleJsonData = dataRecv.substring(dataStart, dataEnd + 1);
+
+    Serial.println(singleJsonData);
+
+    delay(5);
 
     deserializeJson(singleJsonData);
 
     dataStart = dataEnd + 1; // Move to the position after the closing brace of the previous JSON object
   }
-  y = 0;
+  // y = 0;
 }
 
 void setup()
@@ -301,7 +351,7 @@ void setup()
   }
   Serial.println("WiFi connected");
   tft.setTextColor(TFT_GREEN);
-  tft.print("OK");
+  tft.print(" OK - ");
   tft.setTextColor(TFT_WHITE);
   tft.println(WiFi.localIP());
   // Setup MQTT
@@ -317,8 +367,11 @@ void setup()
     {
       Serial.println("Connected to MQTT");
       tft.setTextColor(TFT_GREEN);
-      tft.println("OK");
+      tft.print(" OK - ");
       tft.setTextColor(TFT_WHITE);
+      tft.println(mqtt_server);
+      tft.setTextColor(TFT_YELLOW);
+      tft.println("Waiting for data");
       client.subscribe(topic2);
     }
     else
@@ -332,7 +385,7 @@ void setup()
       delay(2000);
     }
   }
-    ArduinoOTA.setHostname("FX-ota");
+  ArduinoOTA.setHostname("FX-ota");
   ArduinoOTA.begin();
   delay(500);
 }
@@ -469,5 +522,5 @@ void loop()
     printTFT(0, 50, "Waiting for data...", FF18, TFT_WHITE, 1, 1);
     srv = 0;
   }
-        // esp_task_wdt_reset();
+  // esp_task_wdt_reset();
 }
