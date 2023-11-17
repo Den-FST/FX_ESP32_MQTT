@@ -1,4 +1,9 @@
 #include <Arduino.h>
+#include <ArduinoOTA.h>
+// #include <esp_task_wdt.h>
+//3 seconds WDT
+#define WDT_TIMEOUT 10
+
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -55,8 +60,8 @@ PubSubClient client(espClient);
 
 unsigned long currentMillis = 0;
 
-int lastSub = 0;
-int srv = 1;
+float lastSub = 0.0;
+int srv = 0;
 int scr = 1;
 
 #define TRIGGER_PIN 22
@@ -102,7 +107,7 @@ void ledctrl(int r, int g, int b)
 
 void deserializeJson(String jsonData)
 {
-  DynamicJsonDocument doc(2048);
+  DynamicJsonDocument doc(4096);
   // StaticJsonDocument<800> doc; // Adjust the size if necessary
   DeserializationError error = deserializeJson(doc, jsonData);
 
@@ -112,7 +117,7 @@ void deserializeJson(String jsonData)
     Serial.println(error.c_str());
     return;
   }
-
+  
   symbol = doc["s"];
   type = doc["t"];
   lots = doc["l"];
@@ -123,6 +128,8 @@ void deserializeJson(String jsonData)
   hr_mins = doc["hm"];
   dayofweek = doc["dw"];
   trend = doc["tr"];
+  
+
 
   y += 18;
   tft.fillRect(0, y - 15, TFT_HEIGHT, 50, TFT_BLACK);
@@ -145,7 +152,6 @@ void deserializeJson(String jsonData)
   if (col < 0.01)
   {
     printTFT(TFT_WIDTH / 1.3, y, profit, FF18, TFT_RED, 1, 0); // Negative values
-    delay(5);
   }
   else if (col >= 0.01)
   {
@@ -155,7 +161,7 @@ void deserializeJson(String jsonData)
     if (buzzMode == true)
     { // Buzz melody then pozitive value
 
-      if (col > 5.0 && (col - lastSub) > 2)
+      if (col >= 1.0 && (col - lastSub) > 2.0)
       {
         buzz((col * 50), 200);
         lastSub = col;
@@ -172,7 +178,7 @@ void deserializeJson(String jsonData)
   {
     tft.drawTriangle(2, y - 7, 8, y - 7, 5, y - 2, TFT_RED);
   }
-
+  delay(5);
   tft.drawLine(0, y + 5, TFT_HEIGHT, y + 5, TFT_YELLOW); // DRAW YELLOW LINE AND SHOW ON TFT PAIR TEXT
   tft.fillRect(0, y + 25, TFT_HEIGHT, TFT_WIDTH - (TFT_WIDTH - y), TFT_BLACK);
   printTFT(20, y + 20, hr_mins, FF18, TFT_GREEN, 1, 1);
@@ -186,18 +192,18 @@ void deserializeJson(String jsonData)
   {
     tft.setTextColor(TFT_GREEN);
   }
-
+  delay(5);
   tft.setCursor(TFT_WIDTH / 1.3, y + 20);
   tft.print(currprof);
 
   int srv_h = String(hr_mins).substring(0, 2).toInt();
   int srv_hm = String(hr_mins).substring(3, 5).toInt();
-  Serial.print("H:");
-  Serial.print(srv_h);
-  Serial.print(" - M:");
-  Serial.print(srv_hm);
-  Serial.print(" - DoW: ");
-  Serial.println(dayofweek);
+  // Serial.print("H:");
+  // Serial.print(srv_h);
+  // Serial.print(" - M:");
+  // Serial.print(srv_hm);
+  // Serial.print(" - DoW: ");
+  // Serial.println(dayofweek);
 
   if (srv_h > 6 && srv_h < 23 && atoi(dayofweek) != 6 && atoi(dayofweek) != 0 && scr != 0) // If time is betwen 6 a.m. and 11 p.m. and not weekend day, switch monitor on
   {
@@ -215,24 +221,24 @@ void deserializeJson(String jsonData)
 
   // Serial.print("Symbol: ");
   // Serial.print(symbol);
-
-  Serial.println(); // Add an empty line for readability
+  doc.clear(); //Clear memory
+  // Serial.println(); // Add an empty line for readability
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
-  char receivedData[1024]; // Adjust the size if necessary
+  char receivedData[2048]; // Adjust the size if necessary
   for (unsigned int i = 0; i < length; i++)
   {
     receivedData[i] = (char)payload[i];
   }
   receivedData[length] = '\0'; // Null-terminate
 
-  currentMillis = millis();
-  Serial.print("T: ");
-  Serial.print(currentMillis);
-  Serial.println(" ms");
-  Serial.println(receivedData);
+  // currentMillis = millis();
+  // Serial.print("T: ");
+  // Serial.print(currentMillis);
+  // Serial.println(" ms");
+  // //Serial.println(receivedData);
 
   int dataStart = 0;
   int dataEnd = -1;
@@ -260,6 +266,9 @@ void setup()
 {
   Serial.begin(115200);
 
+  // esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
+  // esp_task_wdt_add(NULL); //add current thread to WDT watch
+
   pinMode(buzzerPin, OUTPUT);
   pinMode(TRIGGER_PIN, INPUT_PULLUP);
   pinMode(CHANGE_SRV_PIN, INPUT_PULLUP);
@@ -281,7 +290,8 @@ void setup()
 
   // Connect to Wi-Fi
   Serial.println("Connecting to WiFi...");
-  tft.println("Connecting to WiFi...");
+  tft.print("Connecting to WiFi...");
+
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED)
@@ -290,7 +300,10 @@ void setup()
     Serial.print(".");
   }
   Serial.println("WiFi connected");
-  tft.println("WiFi connected");
+  tft.setTextColor(TFT_GREEN);
+  tft.print("OK");
+  tft.setTextColor(TFT_WHITE);
+  tft.println(WiFi.localIP());
   // Setup MQTT
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
@@ -299,24 +312,35 @@ void setup()
   while (!client.connected())
   {
     Serial.println("Connecting to MQTT...");
-    tft.println("Connecting to MQTT...");
+    tft.print("Connecting to MQTT...");
     if (client.connect("ESP32Client", mqtt_user, mqtt_password))
     {
       Serial.println("Connected to MQTT");
-      tft.println("Connected to MQTT");
-      client.subscribe(topic1);
+      tft.setTextColor(TFT_GREEN);
+      tft.println("OK");
+      tft.setTextColor(TFT_WHITE);
+      client.subscribe(topic2);
     }
     else
     {
+      tft.setTextColor(TFT_RED);
+      tft.print("Failed with state ");
+      tft.println(client.state());
+      tft.setTextColor(TFT_WHITE);
       Serial.print("Failed with state ");
       Serial.print(client.state());
       delay(2000);
     }
   }
+    ArduinoOTA.setHostname("FX-ota");
+  ArduinoOTA.begin();
+  delay(500);
 }
 
 void loop()
 {
+  ArduinoOTA.handle(); // Upload over air. Ota handle.
+
   client.loop();
 
   uint16_t touchX, touchY;
@@ -445,4 +469,5 @@ void loop()
     printTFT(0, 50, "Waiting for data...", FF18, TFT_WHITE, 1, 1);
     srv = 0;
   }
+        // esp_task_wdt_reset();
 }
