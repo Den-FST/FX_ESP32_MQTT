@@ -42,6 +42,9 @@ const char *hr_mins;
 const char *dayofweek;
 const char *trend;
 
+unsigned long previousMillis = 0;      // Stores the previous time
+const unsigned long delayTime = 15000; // Delay time in milliseconds
+
 // Adjust these values in secret.h
 
 // const char *ssid = "";
@@ -119,35 +122,29 @@ void deserializeJson(String jsonData)
     Serial.println(error.c_str());
     return;
   }
-    symbol = doc["s"];
-    type = doc["t"];
-    lots = doc["l"];
-    profit = doc["pr"];
-    currprof = doc["cpr"];
-    todaytrades = doc["ttr"];
-    timeopen = doc["td"];
-    hr_mins = doc["hm"];
-    dayofweek = doc["dw"];
-    trend = doc["tr"];
+  symbol = doc["s"];
+  type = doc["t"];
+  lots = doc["l"];
+  profit = doc["pr"];
+  currprof = doc["cpr"];
+  todaytrades = doc["ttr"];
+  timeopen = doc["td"];
+  hr_mins = doc["hm"];
+  dayofweek = doc["dw"];
+  trend = doc["tr"];
 
-  if (symbol != "null")
+  if (symbol == "null")
   {
     Serial.println("No trades");
     tft.fillScreen(TFT_BLACK);
     printTFT(55, 120, "No Trades", FF18, TFT_WHITE, 2, 1);
     printTFT(55, 200, "Server Time: ", FF18, TFT_WHITE, 1, 1);
-    printTFT(195, 200, hr_mins, FF18, TFT_GREEN, 1, 1);    
-  } else {
-   
-    // type = doc["t"];
-    // lots = doc["l"];
-    // profit = doc["pr"];
-    // currprof = doc["cpr"];
-    // todaytrades = doc["ttr"];
-    // timeopen = doc["td"];
-    // hr_mins = doc["hm"];
-    // dayofweek = doc["dw"];
-    // trend = doc["tr"];
+    printTFT(195, 200, hr_mins, FF18, TFT_GREEN, 1, 1);
+  }
+  else
+  {
+
+    //  tft.fillScreen(TFT_BLACK);
 
     y += 18;
     tft.fillRect(0, y - 15, TFT_HEIGHT, 50, TFT_BLACK);
@@ -224,13 +221,17 @@ void deserializeJson(String jsonData)
     tft.print(currprof);
     delay(5);
 
-  } // END IF NULL
+    printTFT(TFT_WIDTH + 15, y + 20, "S:", FF18, TFT_WHITE, 1, 1);
+    printTFT(TFT_WIDTH + 40, y + 20, String(srv), FF18, TFT_WHITE, 1, 1);
 
-    // todaytrades = doc["ttr"];
-    // hr_mins = doc["hm"];
-    // dayofweek = doc["dw"];
-  
 
+  } // END IF
+
+  // y = 0;
+
+  // todaytrades = doc["ttr"];
+  // hr_mins = doc["hm"];
+  // dayofweek = doc["dw"];
 
   int srv_h = String(hr_mins).substring(0, 2).toInt();
   int srv_hm = String(hr_mins).substring(3, 5).toInt();
@@ -259,8 +260,6 @@ void deserializeJson(String jsonData)
   doc.clear(); // Clear memory
 
   // Serial.println(); // Add an empty line for readability
-
-  
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
@@ -309,7 +308,7 @@ void callback(char *topic, byte *payload, unsigned int length)
 
     dataStart = dataEnd + 1; // Move to the position after the closing brace of the previous JSON object
   }
-  // y = 0;
+  y = 0;
 }
 
 void setup()
@@ -371,7 +370,8 @@ void setup()
       tft.setTextColor(TFT_WHITE);
       tft.println(mqtt_server);
       tft.setTextColor(TFT_YELLOW);
-      tft.println("Waiting for data");
+      tft.print("Waiting for data from server: ");
+      tft.println(srv);
       client.subscribe(topic2);
     }
     else
@@ -523,4 +523,31 @@ void loop()
     srv = 0;
   }
   // esp_task_wdt_reset();
+
+  unsigned long currentMillis = millis(); // Get the current time
+
+  // Check if the desired delay time has passed
+  if (currentMillis - previousMillis >= delayTime)
+  {
+    // Reset the previous time
+    previousMillis = currentMillis;
+
+    if (srv == 1)
+    {
+
+      client.unsubscribe(topic1);
+      delay(100);
+      client.subscribe(topic2);
+      srv = 0;
+    }
+    else if (srv == 0)
+    {
+      client.unsubscribe(topic2);
+      delay(100);
+      client.subscribe(topic1);
+      srv = 1;
+    }
+
+    // client.unsubscribe(topic1);
+  }
 }
