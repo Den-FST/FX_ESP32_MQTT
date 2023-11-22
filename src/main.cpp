@@ -133,18 +133,24 @@ void deserializeJson(String jsonData)
   dayofweek = doc["dw"];
   trend = doc["tr"];
 
-  if (symbol == "null")
+  // Serial.print("Symbol: ");
+  // Serial.println(_TYPEINFO(symbol));
+  // Serial.println(symbol);
+
+  if (type == NULL)
   {
     Serial.println("No trades");
     tft.fillScreen(TFT_BLACK);
     printTFT(55, 120, "No Trades", FF18, TFT_WHITE, 2, 1);
+    printTFT(100, 150, "On server: ", FF18, TFT_YELLOW, 1, 1);
+    printTFT(215, 150, String(srv), FF18, TFT_WHITE, 1, 1);
     printTFT(55, 200, "Server Time: ", FF18, TFT_WHITE, 1, 1);
     printTFT(195, 200, hr_mins, FF18, TFT_GREEN, 1, 1);
   }
   else
   {
 
-    //  tft.fillScreen(TFT_BLACK);
+     tft.fillScreen(TFT_BLACK);
 
     y += 18;
     tft.fillRect(0, y - 15, TFT_HEIGHT, 50, TFT_BLACK);
@@ -222,7 +228,7 @@ void deserializeJson(String jsonData)
     delay(5);
 
     printTFT(TFT_WIDTH + 15, y + 20, "S:", FF18, TFT_WHITE, 1, 1);
-    printTFT(TFT_WIDTH + 40, y + 20, String(srv), FF18, TFT_WHITE, 1, 1);
+    printTFT(TFT_WIDTH + 35, y + 20, String(srv), FF18, TFT_WHITE, 1, 1);
 
 
   } // END IF
