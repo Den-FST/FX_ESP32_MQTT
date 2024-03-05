@@ -11,6 +11,7 @@
 #include <TFT_eSPI.h>
 #include <TFT_Touch.h>
 
+#include "functions.h"
 #include <secret.h>
 
 // These are the pins used to interface between the 2046 touch controller and Arduino Pro
@@ -24,10 +25,10 @@ TFT_Touch touch = TFT_Touch(DCS, DCLK, DIN, DOUT);
 
 #define devboard
 
-#define GFXFF 1
-#define FF18 &FreeMono9pt7b
+// #define GFXFF 1
+// #define FF18 &FreeMono9pt7b
 
-TFT_eSPI tft = TFT_eSPI(); // Initialize TFT display object
+// TFT_eSPI tft = TFT_eSPI(); // Initialize TFT display object
 
 int y = 0;
 
@@ -44,6 +45,7 @@ const char *trend;
 
 unsigned long previousMillis = 0;      // Stores the previous time
 const unsigned long delayTime = 15000; // Delay time in milliseconds
+const unsigned long delayTimeCheck = 120000; // Delay time in milliseconds
 
 // Adjust these values in secret.h
 
@@ -55,8 +57,8 @@ const unsigned long delayTime = 15000; // Delay time in milliseconds
 
 const int mqtt_port = 1883;
 
-const char *topic1 = "mt4";
-const char *topic2 = "mt4_2";
+const char *topic1 = "mt4/srv1";
+const char *topic2 = "mt4/srv2";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -67,6 +69,9 @@ unsigned long currentMillis = 0;
 float lastSub = 0.0;
 int srv = 0;
 int scr = 1;
+
+int srv_h;
+int srv_hm;
 
 #define TRIGGER_PIN 22
 #define CHANGE_SRV_PIN 0
@@ -102,12 +107,12 @@ void buzz(int note, int Duration)
   noTone(buzzerPin);
 }
 
-void ledctrl(int r, int g, int b)
-{
-  digitalWrite(4, r);
-  digitalWrite(16, g);
-  // digitalWrite(17, b);
-}
+// void ledctrl(int r, int g, int b)
+// {
+//   digitalWrite(4, r);
+//   digitalWrite(16, g);
+//   // digitalWrite(17, b);
+// }
 
 void deserializeJson(String jsonData)
 {
@@ -133,10 +138,6 @@ void deserializeJson(String jsonData)
   dayofweek = doc["dw"];
   trend = doc["tr"];
 
-  // Serial.print("Symbol: ");
-  // Serial.println(_TYPEINFO(symbol));
-  // Serial.println(symbol);
-
   if (type == NULL)
   {
     Serial.println("No trades");
@@ -149,15 +150,16 @@ void deserializeJson(String jsonData)
   }
   else
   {
-
-     tft.fillScreen(TFT_BLACK);
-
+    if (y == 0)
+    {
+      tft.fillScreen(TFT_BLACK);
+    }
     y += 18;
     tft.fillRect(0, y - 15, TFT_HEIGHT, 50, TFT_BLACK);
     printTFT(TFT_WIDTH / 16, y, symbol, FF18, TFT_WHITE, 1, 0);
     delay(5);
 
-    if (type == "Sell")
+    if (String(type) == "Sell")
     {
       printTFT(TFT_WIDTH / 2.45, y, "SL", FF18, TFT_BLUE, 1, 0);
       delay(5);
@@ -230,24 +232,11 @@ void deserializeJson(String jsonData)
     printTFT(TFT_WIDTH + 15, y + 20, "S:", FF18, TFT_WHITE, 1, 1);
     printTFT(TFT_WIDTH + 35, y + 20, String(srv), FF18, TFT_WHITE, 1, 1);
 
-
+    tft.fillRect(0, y + 30, TFT_HEIGHT, TFT_WIDTH - (y + 30), TFT_BLACK);
   } // END IF
 
-  // y = 0;
-
-  // todaytrades = doc["ttr"];
-  // hr_mins = doc["hm"];
-  // dayofweek = doc["dw"];
-
-  int srv_h = String(hr_mins).substring(0, 2).toInt();
-  int srv_hm = String(hr_mins).substring(3, 5).toInt();
-
-  // Serial.print("H:");
-  // Serial.print(srv_h);
-  // Serial.print(" - M:");
-  // Serial.print(srv_hm);
-  // Serial.print(" - DoW: ");
-  // Serial.println(dayofweek);
+  srv_h = String(hr_mins).substring(0, 2).toInt();
+  srv_hm = String(hr_mins).substring(3, 5).toInt();
 
   if (srv_h > 6 && srv_h < 23 && atoi(dayofweek) != 6 && atoi(dayofweek) != 0 && scr != 0) // If time is betwen 6 a.m. and 11 p.m. and not weekend day, switch monitor on
   {
@@ -265,7 +254,6 @@ void deserializeJson(String jsonData)
 
   doc.clear(); // Clear memory
 
-  // Serial.println(); // Add an empty line for readability
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
@@ -276,12 +264,6 @@ void callback(char *topic, byte *payload, unsigned int length)
     receivedData[i] = (char)payload[i];
   }
   receivedData[length] = '\0'; // Null-terminate
-
-  // currentMillis = millis();
-  // Serial.print("T: ");
-  // Serial.print(currentMillis);
-  // Serial.println(" ms");
-  // //Serial.println(receivedData);
 
   int dataStart = 0;
   int dataEnd = -1;
@@ -394,6 +376,10 @@ void setup()
   ArduinoOTA.setHostname("FX-ota");
   ArduinoOTA.begin();
   delay(500);
+  set_time();
+  printDateTime(1);
+  tft.print("Failed with state ");
+  tft.println(client.state());
 }
 
 void loop()
@@ -402,40 +388,40 @@ void loop()
 
   client.loop();
 
-  uint16_t touchX, touchY;
+  // uint16_t touchX, touchY;
 
-  bool touched = touch.Pressed(); // tft.getTouch( &touchX, &touchY, 600 );
-  int srvTouch = 0;
+  // bool touched = touch.Pressed(); // tft.getTouch( &touchX, &touchY, 600 );
+  // int srvTouch = 0;
 
-  if (touched)
-  {
+  // if (touched)
+  // {
 
-    if (scr == 1)
-    {
-      tft.fillScreen(TFT_BLACK);
-      tft.setTextFont(1);
-      tft.drawCentreString("SCREEN OFF IN 5 SEC", TFT_WIDTH / 3, TFT_HEIGHT / 6, 2);
-      scr = 0;
-      delay(5000);
-      digitalWrite(TFT_BL, LOW);
-      Serial.println("Screen OFF");
-    }
-    else
-    {
-      digitalWrite(TFT_BL, HIGH);
-      Serial.println("Screen ON");
-      delay(1000);
-      scr = 1;
-    }
+  //   if (scr == 1)
+  //   {
+  //     tft.fillScreen(TFT_BLACK);
+  //     tft.setTextFont(1);
+  //     tft.drawCentreString("SCREEN OFF IN 5 SEC", TFT_WIDTH / 3, TFT_HEIGHT / 6, 2);
+  //     scr = 0;
+  //     delay(5000);
+  //     digitalWrite(TFT_BL, LOW);
+  //     Serial.println("Screen OFF");
+  //   }
+  //   else
+  //   {
+  //     digitalWrite(TFT_BL, HIGH);
+  //     Serial.println("Screen ON");
+  //     delay(1000);
+  //     scr = 1;
+  //   }
 
-    touchX = touch.X();
-    touchY = touch.Y();
+  //   touchX = touch.X();
+  //   touchY = touch.Y();
 
-    Serial.print("Data x ");
-    Serial.println(touchX);
+  //   Serial.print("Data x ");
+  //   Serial.println(touchX);
 
-    Serial.print("Data y ");
-    Serial.println(touchY);
+  //   Serial.print("Data y ");
+  //   Serial.println(touchY);
 
     // ---=== MENU TEST ===---
     // tft.drawRect(touchX, touchY, 60, 40, TFT_RED);
@@ -447,7 +433,7 @@ void loop()
     // Serial.print(tft.textWidth(item1));
     // Serial.print(" - ");
     // Serial.println(tft.fontHeight(1));
-  }
+  // }
 
   if (digitalRead(BUZZOFF_PIN) == LOW)
   {
@@ -490,7 +476,6 @@ void loop()
     client.unsubscribe(topic2);
     delay(100);
     client.subscribe(topic1);
-
     srv = 1;
     delay(2000);
 
@@ -516,7 +501,7 @@ void loop()
     printTFT(TFT_WIDTH / 14, TFT_HEIGHT / 3, topic2, FF18, TFT_LIGHTGREY, 1, 1);
 
     Serial.print("Server Changed to Second! ");
-    // WebSerial.println(F("Server Changed to Second!"));
+    // Serial.println(F("Server Changed to Second!"));
     // Serial.print(fx_server_con);
     Serial.println(topic2);
     client.unsubscribe(topic1);
@@ -555,5 +540,23 @@ void loop()
     }
 
     // client.unsubscribe(topic1);
+  }
+
+    // Check if the desired delay time has passed
+  if (currentMillis - previousMillis >= delayTimeCheck)
+  {
+    // Reset the previous time
+    previousMillis = currentMillis;
+      
+    printDateTime(0);
+
+    // Serial.print("Server min:" );
+    // Serial.print(srv_hm);
+    // Serial.print(" - Local min: ");
+    // Serial.println(mins_check);
+
+    if (abs(srv_hm - mins_check) > 2){
+        ESP.restart();
+    }
   }
 }
