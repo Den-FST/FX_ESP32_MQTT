@@ -71,6 +71,8 @@ int srv = 0;
 int scr = 1;
 
 int dotIndex = 4;
+String currprf;
+String prft;
 
 int srv_h;
 int srv_hm;
@@ -177,10 +179,12 @@ void deserializeJson(String jsonData)
 
     float col = atoi(profit);
 
-    dotIndex = String(profit).indexOf('.'); // Find the index of the first dot
-
-    String prft = String(profit).substring(0, dotIndex);
-
+    if (abs(col) > 100){
+        dotIndex = String(profit).indexOf('.'); // Find the index of the first dot
+        prft = String(profit).substring(0, dotIndex);
+    } else {
+        prft = profit;
+    }
 
     if (col < 0.01)
     {
@@ -226,10 +230,14 @@ void deserializeJson(String jsonData)
 
     tft.setCursor(TFT_WIDTH / 1.3, y + 20);
     int col1 = atoi(currprof);
+    
+    if (abs(col1) > 100){
+        dotIndex = String(currprof).indexOf('.'); // Find the index of the first dot
+        currprf = String(currprof).substring(0, dotIndex);
+    } else {
+         currprf = currprof;
+    }
 
-    dotIndex = String(currprof).indexOf('.'); // Find the index of the first dot
-
-    String currprf = String(currprof).substring(0, dotIndex);
     if (col1 < 0)
       tft.setTextColor(TFT_GOLD);
     else

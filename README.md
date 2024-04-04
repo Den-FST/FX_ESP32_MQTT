@@ -36,6 +36,7 @@ for ILI9341
 
 #define TOUCH_CS 33     // Chip select pin (T_CS) of touch screen
 
+#define TFT_BACKLIGHT_ON HIGH  // Level to turn ON back-light (HIGH or LOW)
 
 
 ```
