@@ -70,6 +70,8 @@ float lastSub = 0.0;
 int srv = 0;
 int scr = 1;
 
+int dotIndex = 4;
+
 int srv_h;
 int srv_hm;
 
@@ -81,7 +83,7 @@ const int buzzerPin = 27; // Use the actual pin number where you connected the b
 
 int melody[] = {262, 294, 330, 349, 392, 440, 494, 523};
 int noteDuration = 300;
-bool buzzMode = false;
+bool buzzMode = true;
 
 // TFT Printing function
 void printTFT(int x, int y, String text, const GFXfont *font, uint16_t color, int size, int format)
@@ -174,14 +176,20 @@ void deserializeJson(String jsonData)
     delay(5);
 
     float col = atoi(profit);
+
+    dotIndex = String(profit).indexOf('.'); // Find the index of the first dot
+
+    String prft = String(profit).substring(0, dotIndex);
+
+
     if (col < 0.01)
     {
-      printTFT(TFT_WIDTH / 1.3, y, profit, FF18, TFT_RED, 1, 0); // Negative values
+      printTFT(TFT_WIDTH / 1.3, y, prft, FF18, TFT_RED, 1, 0); // Negative values
       delay(5);
     }
     else if (col >= 0.01)
     {
-      printTFT(TFT_WIDTH / 1.234, y, profit, FF18, TFT_GREEN, 1, 0); // Positive values
+      printTFT(TFT_WIDTH / 1.234, y, prft, FF18, TFT_GREEN, 1, 0); // Positive values
       delay(5);
 
       if (buzzMode == true)
@@ -218,6 +226,10 @@ void deserializeJson(String jsonData)
 
     tft.setCursor(TFT_WIDTH / 1.3, y + 20);
     int col1 = atoi(currprof);
+
+    dotIndex = String(currprof).indexOf('.'); // Find the index of the first dot
+
+    String currprf = String(currprof).substring(0, dotIndex);
     if (col1 < 0)
       tft.setTextColor(TFT_GOLD);
     else
@@ -226,13 +238,19 @@ void deserializeJson(String jsonData)
     }
     delay(5);
     tft.setCursor(TFT_WIDTH / 1.3, y + 20);
-    tft.print(currprof);
+    tft.print(currprf);
     delay(5);
 
     printTFT(TFT_WIDTH + 15, y + 20, "S:", FF18, TFT_WHITE, 1, 1);
     printTFT(TFT_WIDTH + 35, y + 20, String(srv), FF18, TFT_WHITE, 1, 1);
 
+    // int free_heap = esp_get_free_heap_size() / 1000;
+    // printTFT(TFT_WIDTH / 2.55, y + 20, String(free_heap), FF18, TFT_WHITE, 1, 1);
+
     tft.fillRect(0, y + 30, TFT_HEIGHT, TFT_WIDTH - (y + 30), TFT_BLACK);
+
+
+  
   } // END IF
 
   srv_h = String(hr_mins).substring(0, 2).toInt();
@@ -380,10 +398,12 @@ void setup()
   printDateTime(1);
   tft.print("Failed with state ");
   tft.println(client.state());
+  buzz(1500, 500);
 }
 
 void loop()
 {
+  
   ArduinoOTA.handle(); // Upload over air. Ota handle.
 
   client.loop();
@@ -522,6 +542,17 @@ void loop()
   {
     // Reset the previous time
     previousMillis = currentMillis;
+
+
+    // ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+    // printf("[APP] Free memory: %d bytes", esp_get_free_heap_size());
+    // Serial.print("Free memory:");
+    // int free_heap = esp_get_free_heap_size() / 1000;
+    // int heap_size = ESP.getHeapSize() / 1000;
+    // Serial.print("Heap size: ");
+    // Serial.print(heap_size );
+    // Serial.print(" - Free: ");
+    // Serial.println(free_heap );
 
     if (srv == 1)
     {

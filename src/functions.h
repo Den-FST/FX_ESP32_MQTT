@@ -145,34 +145,6 @@ void printDateTime(int tftparam) {
   
   Serial.println(dayWeek[dayOfWeek]);
 
-
-  // switch (dayOfWeek) {
-  //   case 0:
-  //     Serial.println(dayWeek[0]);
-  //     break;
-  //   case 1:
-  //     Serial.println(dayWeek[1]);
-  //     break;
-  //   case 2:
-  //     Serial.println(" - Tuesday");
-  //     break;
-  //   case 3:
-  //     Serial.println(" - Wednesday");
-  //     break;
-  //   case 4:
-  //     Serial.println(" - Thursday");
-  //     break;
-  //   case 5:
-  //     Serial.println(" - Friday");
-  //     break;
-  //   case 6:
-  //     Serial.println(" - Saturday");
-  //     break;
-  //   default:
-  //     Serial.println(" - Unknown day of the week");
-  //     break;
-  // }
-
   if (tftparam == 1){
         tft.setTextColor(TFT_GREEN);
         tft.print("Time: ");

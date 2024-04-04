@@ -22,3 +22,20 @@ Next implementation tasks:
 - [ ] WebSerial control. Send "cmd" to view commands. 
 
 <img src="main.jpg" width="400"/>
+
+for ILI9341
+
+```C++
+
+#define TFT_MOSI 13 // In some display driver board, it might be written as "SDA" and so on.
+#define TFT_SCLK 14
+#define TFT_CS   15  // Chip select control pin
+#define TFT_DC   2  // Data Command control pin
+#define TFT_RST  12  // Reset pin (could connect to Arduino RESET pin)
+#define TFT_BL   21  // LED back-light
+
+#define TOUCH_CS 33     // Chip select pin (T_CS) of touch screen
+
+
+
+```
